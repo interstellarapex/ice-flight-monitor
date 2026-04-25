@@ -157,9 +157,28 @@
   .cp-key { color: var(--muted); }
   .cp-val { font-weight: 500; }
 
-  .legend-bar { display: flex; gap: 2px; }
-  .leg-box { height: 8px; flex: 1; border-radius: 1px; }
-  .legend-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .leg-buckets {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .leg-bucket-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .leg-bucket-row .leg-swatch {
+    width: 22px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .leg-bucket-row .leg-range {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
   .legend-row {
     display: flex; align-items: center; gap: 8px;
     font-size: 12px; color: var(--muted);
@@ -392,10 +411,9 @@
     </div>
 
     <div>
-      <div class="sec-label">Color scale</div>
-      <div class="legend-bar" id="leg-bar"></div>
-      <div class="legend-ends"><span>0</span><span id="leg-max">30</span></div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--hub);"></span>Departure hub</div>
+      <div class="sec-label">Flights per country</div>
+      <div id="leg-buckets" class="leg-buckets"></div>
+      <div class="legend-row" style="margin-top:10px;"><span class="legend-swatch" style="background:var(--hub);"></span>Departure hub</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--third);"></span>Third-country transfer</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#0e1525; border: 1px solid var(--border);"></span>No data this month</div>
     </div>
@@ -539,6 +557,7 @@ let geoFeatures = null;
 let proj, pathFn, svgEl;
 let arcLayer, hubLayer, countryLayer;
 let zoomGroup, zoomBehavior;
+let currentZoom = 1;
 let arcAnimRAF = null;
 let isPlaying = false;
 let playInterval = null;
@@ -618,9 +637,34 @@ function updateMapFill() {
   updateLegend(maxVal);
 }
 function updateLegend(maxVal) {
-  const bar = document.getElementById("leg-bar");
-  bar.innerHTML = RAMP.map(c=>`<span class="leg-box" style="background:${c}"></span>`).join("");
-  document.getElementById("leg-max").textContent = maxVal;
+  const buckets = document.getElementById("leg-buckets");
+  const N = RAMP.length;       // 7 colors
+  const D = N - 1;             // divisor used in colorFor
+  const rows = [];
+  // Show buckets in descending order (highest values at top)
+  for (let i = N - 1; i >= 0; i--) {
+    // Bucket i covers values where Math.floor((val/maxVal)*D) === i
+    // → val ∈ [ ceil(maxVal*i/D) , floor(maxVal*(i+1)/D - tiny) ]
+    // Bucket 0 starts at 1 (since 0 means no data).
+    let lo = Math.max(1, Math.ceil((maxVal * i) / D));
+    let hi;
+    if (i === D) {
+      hi = maxVal;
+    } else {
+      const upper = (maxVal * (i + 1)) / D;
+      // exclude the value that maps into the next bucket
+      hi = Math.ceil(upper) - 1;
+      if (hi < lo) hi = lo;
+    }
+    const label = (lo === hi) ? `${lo}` : `${lo}–${hi}`;
+    rows.push(
+      `<div class="leg-bucket-row">
+        <span class="leg-swatch" style="background:${RAMP[i]}"></span>
+        <span class="leg-range">${label}${i === D ? ' max' : ''}</span>
+      </div>`
+    );
+  }
+  buckets.innerHTML = rows.join("");
 }
 
 // ─── ARC ANIMATION ───
@@ -684,6 +728,7 @@ function controlPoint(p0, p1) {
 function tick() {
   arcLayer.selectAll("*").remove();
   let stillAnimating = false;
+  const k = currentZoom || 1;
 
   activeArcs.forEach(arc => {
     if (arc.delay > 0) {
@@ -714,14 +759,17 @@ function tick() {
       .attr("d", lineStr)
       .attr("fill","none")
       .attr("stroke", arc.color)
-      .attr("stroke-width", arc.weight)
+      .attr("data-sw", arc.weight)
+      .attr("stroke-width", arc.weight / k)
       .attr("stroke-opacity", 0.7)
       .attr("stroke-linecap","round");
 
     const tipPt = pts[pts.length-1];
+    const tipR = arc.weight * 1.4;
     arcLayer.append("circle")
       .attr("cx", tipPt[0]).attr("cy", tipPt[1])
-      .attr("r", arc.weight * 1.4)
+      .attr("data-r", tipR)
+      .attr("r", tipR / k)
       .attr("fill", arc.color)
       .attr("opacity", 0.9);
 
@@ -729,11 +777,13 @@ function tick() {
       const prev = pts[pts.length-2];
       const angle = Math.atan2(tipPt[1]-prev[1], tipPt[0]-prev[0]) * 180 / Math.PI;
       const fadeIn = Math.min(1, (t - 0.92) / 0.08);
+      const baseTrans = `translate(${tipPt[0].toFixed(1)},${tipPt[1].toFixed(1)}) rotate(${angle.toFixed(1)})`;
       arcLayer.append("polygon")
         .attr("points","-7,-3.5 4,0 -7,3.5")
         .attr("fill", arc.color)
         .attr("opacity", fadeIn)
-        .attr("transform",`translate(${tipPt[0].toFixed(1)},${tipPt[1].toFixed(1)}) rotate(${angle.toFixed(1)})`);
+        .attr("data-base-transform", baseTrans)
+        .attr("transform", `${baseTrans} scale(${1/k})`);
     }
   });
 
@@ -931,8 +981,9 @@ function initMap() {
     .on("zoom", (event) => {
       const t = event.transform;
       zoomGroup.attr("transform", t);
-      // Counter-scale strokes & dot radii so they don't get chunky at high zoom
       const k = t.k;
+      currentZoom = k;
+      // Counter-scale strokes & dot radii so they don't get chunky at high zoom
       countryLayer.selectAll(".country").attr("stroke-width", 0.4 / k);
       zoomGroup.select(".graticule").attr("stroke-width", 0.6 / k);
       hubLayer.selectAll("circle").each(function() {
@@ -942,7 +993,27 @@ function initMap() {
         const baseSW = +c.attr("data-sw");
         if (baseSW) c.attr("stroke-width", baseSW / k);
       });
-      // Hide the arrow tooltip during zoom to avoid stale positions
+      // Counter-scale arc strokes, tip dots, and arrowheads
+      arcLayer.selectAll("path").each(function() {
+        const p = d3.select(this);
+        const baseSW = +p.attr("data-sw");
+        if (baseSW) p.attr("stroke-width", baseSW / k);
+      });
+      arcLayer.selectAll("circle").each(function() {
+        const c = d3.select(this);
+        const baseR = +c.attr("data-r");
+        if (baseR) c.attr("r", baseR / k);
+      });
+      arcLayer.selectAll("polygon").each(function() {
+        const poly = d3.select(this);
+        const baseTrans = poly.attr("data-base-transform");
+        if (baseTrans) {
+          // baseTrans format: "translate(x,y) rotate(deg)"
+          // Insert scale(1/k) at the end
+          poly.attr("transform", `${baseTrans} scale(${1/k})`);
+        }
+      });
+      // Hide the tooltip during zoom to avoid stale positions
       document.getElementById("tooltip").style.display = "none";
     });
 
