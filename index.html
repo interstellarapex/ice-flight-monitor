@@ -65,7 +65,7 @@
   .main {
     height: calc(100vh - 56px);
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 300px 1fr;
     grid-template-rows: 1fr 140px;
   }
   .sidebar {
@@ -97,20 +97,20 @@
 
   /* SIDEBAR */
   .sec-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
-  .pills { display: flex; flex-direction: column; gap: 5px; }
+  .pills { display: flex; flex-direction: column; gap: 6px; }
   .pill {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 10px;
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px;
     border-radius: 5px;
     border: 1px solid var(--border);
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
     cursor: pointer;
     background: transparent;
@@ -119,38 +119,38 @@
   }
   .pill:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
   .pill.active { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.18); }
-  .pill-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .pill-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .dot-r { background: var(--accent); }
   .dot-t { background: var(--third); }
   .dot-a { background: linear-gradient(135deg, var(--accent) 50%, var(--third) 50%); }
 
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .stat {
     background: var(--surface2);
     border-radius: 5px;
-    padding: 8px 10px;
+    padding: 10px 12px;
   }
   .stat-val {
     font-family: var(--font);
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 600;
     line-height: 1.05;
   }
   .stat-val.up { color: #f87171; }
-  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
 
   .country-panel {
     background: var(--surface2);
     border-radius: 5px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     display: none;
   }
   .country-panel.vis { display: block; }
-  .cp-name { font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+  .cp-name { font-size: 15px; font-weight: 600; margin-bottom: 9px; }
   .cp-row {
     display: flex; justify-content: space-between;
-    font-size: 11px;
-    padding: 3px 0;
+    font-size: 13px;
+    padding: 4px 0;
     border-bottom: 1px solid var(--border);
   }
   .cp-row:last-child { border-bottom: none; }
@@ -158,17 +158,17 @@
   .cp-val { font-weight: 500; }
 
   .legend-bar { display: flex; gap: 2px; }
-  .leg-box { height: 7px; flex: 1; border-radius: 1px; }
-  .legend-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .leg-box { height: 8px; flex: 1; border-radius: 1px; }
+  .legend-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
   .legend-row {
-    display: flex; align-items: center; gap: 7px;
-    font-size: 10px; color: var(--muted);
-    margin-top: 5px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted);
+    margin-top: 6px;
   }
-  .legend-swatch { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 
   .source-note {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
     line-height: 1.55;
     margin-top: auto;
@@ -190,16 +190,16 @@
     background: rgba(10,14,22,0.97);
     border: 1px solid rgba(255,255,255,0.14);
     border-radius: 7px;
-    padding: 9px 12px;
-    font-size: 11px;
+    padding: 10px 13px;
+    font-size: 12px;
     pointer-events: none;
     z-index: 50;
     display: none;
-    max-width: 220px;
+    max-width: 240px;
     box-shadow: 0 6px 22px rgba(0,0,0,0.7);
   }
-  .tt-name { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
-  .tt-row { display: flex; justify-content: space-between; gap: 14px; margin: 2px 0; }
+  .tt-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .tt-row { display: flex; justify-content: space-between; gap: 14px; margin: 3px 0; }
   .tt-key { color: var(--muted); }
   .tt-badge {
     display: inline-block;
@@ -221,6 +221,49 @@
     font-size: 13px;
     color: rgba(255,255,255,0.32);
     pointer-events: none;
+  }
+
+  /* Zoom controls */
+  .zoom-controls {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 10;
+  }
+  .zoom-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    background: rgba(19,24,37,0.9);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+    backdrop-filter: blur(6px);
+    user-select: none;
+  }
+  .zoom-btn:hover {
+    background: rgba(26,32,48,0.95);
+    border-color: rgba(255,255,255,0.22);
+  }
+  .zoom-btn:active { transform: scale(0.95); }
+  .zoom-btn.reset { font-size: 10px; letter-spacing: 0.05em; }
+  .zoom-hint {
+    position: absolute;
+    bottom: 14px;
+    left: 18px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.28);
+    pointer-events: none;
+    letter-spacing: 0.04em;
   }
 
   /* TIMELINE */
@@ -345,7 +388,7 @@
         <div class="cp-row"><span class="cp-key">Type</span><span class="cp-val" id="cp-type">—</span></div>
         <div class="cp-row"><span class="cp-key">All-time tracked</span><span class="cp-val" id="cp-all">—</span></div>
       </div>
-      <div id="cp-empty" style="font-size:11px;color:var(--muted);">Hover a country to view details</div>
+      <div id="cp-empty" style="font-size:13px;color:var(--muted);">Hover a country to view details</div>
     </div>
 
     <div>
@@ -366,6 +409,12 @@
   <!-- MAP -->
   <div class="map-area">
     <svg id="map" role="img" aria-label="World map showing ICE deportation flight arcs from US hubs to destination countries"></svg>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button class="zoom-btn" id="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+      <button class="zoom-btn reset" id="zoom-reset" aria-label="Reset view" title="Reset view">⟲</button>
+    </div>
+    <div class="zoom-hint">Scroll to zoom · Drag to pan</div>
     <div class="map-period" id="map-period">March 2026</div>
   </div>
 
@@ -489,6 +538,7 @@ let activeType  = "removal";
 let geoFeatures = null;
 let proj, pathFn, svgEl;
 let arcLayer, hubLayer, countryLayer;
+let zoomGroup, zoomBehavior;
 let arcAnimRAF = null;
 let isPlaying = false;
 let playInterval = null;
@@ -852,7 +902,14 @@ function initMap() {
   svgEl = d3.select("#map");
   svgEl.attr("viewBox",`0 0 ${W} ${H}`).attr("width",W).attr("height",H);
 
-  svgEl.append("rect").attr("width",W).attr("height",H).attr("fill","#04070d");
+  // Ocean background — outside zoom group so it stays full-bleed
+  svgEl.append("rect")
+    .attr("class","ocean")
+    .attr("width",W).attr("height",H)
+    .attr("fill","#04070d");
+
+  // All zoomable content lives inside this group
+  zoomGroup = svgEl.append("g").attr("class","zoom-group");
 
   proj = d3.geoNaturalEarth1()
     .scale(W / 6.0)
@@ -860,12 +917,36 @@ function initMap() {
   pathFn = d3.geoPath(proj);
 
   const grat = d3.geoGraticule().step([20,20])();
-  svgEl.append("path").datum(grat).attr("d", pathFn)
+  zoomGroup.append("path").datum(grat).attr("class","graticule").attr("d", pathFn)
     .attr("fill","none").attr("stroke","rgba(255,255,255,0.025)").attr("stroke-width",0.6);
 
-  countryLayer = svgEl.append("g").attr("class","country-layer");
-  arcLayer     = svgEl.append("g").attr("class","arc-layer");
-  hubLayer     = svgEl.append("g").attr("class","hub-layer");
+  countryLayer = zoomGroup.append("g").attr("class","country-layer");
+  arcLayer     = zoomGroup.append("g").attr("class","arc-layer");
+  hubLayer     = zoomGroup.append("g").attr("class","hub-layer");
+
+  // ─── ZOOM BEHAVIOR ───
+  zoomBehavior = d3.zoom()
+    .scaleExtent([1, 12])
+    .translateExtent([[-W*0.3, -H*0.3], [W*1.3, H*1.3]])
+    .on("zoom", (event) => {
+      const t = event.transform;
+      zoomGroup.attr("transform", t);
+      // Counter-scale strokes & dot radii so they don't get chunky at high zoom
+      const k = t.k;
+      countryLayer.selectAll(".country").attr("stroke-width", 0.4 / k);
+      zoomGroup.select(".graticule").attr("stroke-width", 0.6 / k);
+      hubLayer.selectAll("circle").each(function() {
+        const c = d3.select(this);
+        const baseR = +c.attr("data-r");
+        if (baseR) c.attr("r", baseR / k);
+        const baseSW = +c.attr("data-sw");
+        if (baseSW) c.attr("stroke-width", baseSW / k);
+      });
+      // Hide the arrow tooltip during zoom to avoid stale positions
+      document.getElementById("tooltip").style.display = "none";
+    });
+
+  svgEl.call(zoomBehavior);
 
   d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
     geoFeatures = topojson.feature(world, world.objects.countries).features;
@@ -912,19 +993,81 @@ function initMap() {
     HUBS.forEach(h => {
       const px = proj([h.lng, h.lat]);
       if (!px) return;
-      const g = hubLayer.append("g").attr("class","hub-dot").style("pointer-events","none");
+      const g = hubLayer.append("g").attr("class","hub-dot");
+      // outer pulse ring (no pointer events)
       g.append("circle")
         .attr("cx", px[0]).attr("cy", px[1])
         .attr("r", 6)
+        .attr("data-r", 6)
+        .attr("data-sw", 1)
         .attr("fill","none")
         .attr("stroke", HUB_COLOR)
         .attr("stroke-width", 1)
-        .attr("opacity", 0.4);
+        .attr("opacity", 0.4)
+        .style("pointer-events","none");
+      // inner dot (no pointer events)
       g.append("circle")
         .attr("cx", px[0]).attr("cy", px[1])
         .attr("r", 2.5)
+        .attr("data-r", 2.5)
         .attr("fill", HUB_COLOR)
-        .attr("opacity", 0.95);
+        .attr("opacity", 0.95)
+        .style("pointer-events","none");
+      // invisible larger hit-area for easy hovering
+      g.append("circle")
+        .attr("cx", px[0]).attr("cy", px[1])
+        .attr("r", 9)
+        .attr("data-r", 9)
+        .attr("fill","transparent")
+        .style("cursor","help")
+        .on("mouseenter", function(event) {
+          // count hub usage in this period
+          let totalFlights = 0;
+          let countries = 0;
+          for (const [name, cd] of Object.entries(COUNTRIES)) {
+            const val = getCountryAtMonth(name, activeMonth, activeType);
+            if (val > 0 && cd.hubs && cd.hubs.some(idx => HUBS[idx] === h)) {
+              totalFlights += val;
+              countries++;
+            }
+          }
+          const tip = document.getElementById("tooltip");
+          tip.innerHTML = `
+            <div class="tt-name" style="color:#ffd166;">✈ ${h.name}</div>
+            <div class="tt-row"><span class="tt-key">Role</span><span>ICE Air departure hub</span></div>
+            <div class="tt-row"><span class="tt-key">Routes this month</span><span>${countries} ${countries===1?'country':'countries'}</span></div>
+            <div class="tt-row"><span class="tt-key">Flights served</span><span>~${totalFlights}</span></div>
+            <div style="font-size:9px; color:var(--muted); margin-top:6px; line-height:1.4;">
+              Origin-destination pairings shown are illustrative based on known operational patterns.
+            </div>`;
+          tip.style.display = "block";
+          tip.style.left = (event.clientX + 14) + "px";
+          tip.style.top  = (event.clientY - 10) + "px";
+
+          // brighten this hub's outer ring
+          d3.select(this.parentNode).selectAll("circle")
+            .filter(function() { return d3.select(this).attr("fill") !== "transparent"; })
+            .transition().duration(150)
+            .attr("opacity", function() {
+              return +d3.select(this).attr("opacity") < 0.7 ? 0.85 : 1;
+            });
+        })
+        .on("mousemove", function(event) {
+          const tip = document.getElementById("tooltip");
+          tip.style.left = (event.clientX + 14) + "px";
+          tip.style.top  = (event.clientY - 10) + "px";
+        })
+        .on("mouseleave", function() {
+          document.getElementById("tooltip").style.display = "none";
+          // restore opacity
+          d3.select(this.parentNode).selectAll("circle")
+            .filter(function() { return d3.select(this).attr("fill") !== "transparent"; })
+            .transition().duration(200)
+            .attr("opacity", function() {
+              const r = +d3.select(this).attr("data-r");
+              return r > 4 ? 0.4 : 0.95;  // outer ring vs inner dot
+            });
+        });
     });
 
     updateStats();
@@ -951,6 +1094,17 @@ document.querySelectorAll(".pill").forEach(p => {
 });
 
 document.getElementById("play-btn").addEventListener("click", togglePlay);
+
+// Zoom button controls
+document.getElementById("zoom-in").addEventListener("click", () => {
+  if (svgEl && zoomBehavior) svgEl.transition().duration(250).call(zoomBehavior.scaleBy, 1.6);
+});
+document.getElementById("zoom-out").addEventListener("click", () => {
+  if (svgEl && zoomBehavior) svgEl.transition().duration(250).call(zoomBehavior.scaleBy, 1/1.6);
+});
+document.getElementById("zoom-reset").addEventListener("click", () => {
+  if (svgEl && zoomBehavior) svgEl.transition().duration(350).call(zoomBehavior.transform, d3.zoomIdentity);
+});
 
 let resizeTimer;
 window.addEventListener("resize", () => {
