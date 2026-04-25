@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICE Deportation Flight Monitor</title>
+<style>
+  :root {
+    --bg: #0a0e16;
+    --surface: #131825;
+    --surface2: #1a2030;
+    --border: rgba(255,255,255,0.08);
+    --text: #e6edf3;
+    --muted: #7d8a9e;
+    --accent: #e63946;
+    --accent2: #ff6b4a;
+    --third: #9b8cf2;
+    --hub: #ffd166;
+    --font: 'Georgia','Times New Roman',serif;
+    --sans: 'Helvetica Neue',Arial,sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+  }
+
+  /* HEADER */
+  header {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,14,22,0.95);
+    position: relative;
+    z-index: 30;
+  }
+  .header-title h1 {
+    font-family: var(--font);
+    font-size: 19px;
+    font-weight: normal;
+    letter-spacing: 0.02em;
+  }
+  .header-title .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+    letter-spacing: 0.04em;
+  }
+  .header-links { display: flex; gap: 18px; }
+  .header-links a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: 0.15s;
+  }
+  .header-links a:hover { color: var(--text); border-color: var(--muted); }
+
+  /* MAIN LAYOUT */
+  .main {
+    height: calc(100vh - 56px);
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 1fr 140px;
+  }
+  .sidebar {
+    grid-column: 1; grid-row: 1 / 3;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .map-area {
+    grid-column: 2; grid-row: 1;
+    position: relative;
+    background: #04070d;
+    overflow: hidden;
+  }
+  .timeline-area {
+    grid-column: 2; grid-row: 2;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 16px 28px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+  }
+
+  /* SIDEBAR */
+  .sec-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .pills { display: flex; flex-direction: column; gap: 5px; }
+  .pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    background: transparent;
+    text-align: left;
+    transition: 0.15s;
+  }
+  .pill:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
+  .pill.active { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .pill-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .dot-r { background: var(--accent); }
+  .dot-t { background: var(--third); }
+  .dot-a { background: linear-gradient(135deg, var(--accent) 50%, var(--third) 50%); }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat {
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: 8px 10px;
+  }
+  .stat-val {
+    font-family: var(--font);
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.05;
+  }
+  .stat-val.up { color: #f87171; }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+
+  .country-panel {
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: 10px 12px;
+    display: none;
+  }
+  .country-panel.vis { display: block; }
+  .cp-name { font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+  .cp-row {
+    display: flex; justify-content: space-between;
+    font-size: 11px;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .cp-row:last-child { border-bottom: none; }
+  .cp-key { color: var(--muted); }
+  .cp-val { font-weight: 500; }
+
+  .legend-bar { display: flex; gap: 2px; }
+  .leg-box { height: 7px; flex: 1; border-radius: 1px; }
+  .legend-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .legend-row {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 10px; color: var(--muted);
+    margin-top: 5px;
+  }
+  .legend-swatch { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+  .source-note {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .source-note a { color: var(--muted); text-decoration: underline; }
+
+  /* MAP */
+  #map {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: default;
+  }
+  .country { transition: fill 0.4s ease; }
+
+  #tooltip {
+    position: fixed;
+    background: rgba(10,14,22,0.97);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+    max-width: 220px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.7);
+  }
+  .tt-name { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+  .tt-row { display: flex; justify-content: space-between; gap: 14px; margin: 2px 0; }
+  .tt-key { color: var(--muted); }
+  .tt-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tt-badge.r { background: rgba(230,57,70,0.18); color: #ff8a92; border: 1px solid rgba(230,57,70,0.3); }
+  .tt-badge.t { background: rgba(155,140,242,0.18); color: #c0b3fc; border: 1px solid rgba(155,140,242,0.3); }
+
+  .map-period {
+    position: absolute;
+    bottom: 14px;
+    right: 18px;
+    font-family: var(--font);
+    font-size: 13px;
+    color: rgba(255,255,255,0.32);
+    pointer-events: none;
+  }
+
+  /* TIMELINE */
+  .tl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .tl-period {
+    font-family: var(--font);
+    font-size: 17px;
+    letter-spacing: 0.01em;
+  }
+  .tl-period-stats {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .tl-period-stats strong { color: var(--text); font-weight: 600; }
+  .tl-controls { display: flex; align-items: center; gap: 12px; }
+  .play-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.15s;
+  }
+  .play-btn:hover { background: rgba(255,255,255,0.08); }
+
+  .tl-track-wrap {
+    position: relative;
+    height: 60px;
+  }
+  #tl-svg { display: block; width: 100%; height: 60px; cursor: pointer; }
+  .tl-thumb {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: #fff;
+    pointer-events: none;
+    transform: translateX(-50%);
+    box-shadow: 0 0 10px rgba(255,255,255,0.5);
+  }
+  .tl-thumb::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px rgba(255,255,255,0.6);
+  }
+
+  .tl-month-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    padding: 0 1px;
+    margin-top: -2px;
+  }
+  .tl-month-labels span.active { color: #fff; font-weight: 600; }
+
+  /* RESPONSIVE */
+  @media (max-width: 800px) {
+    .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr 140px; }
+    .sidebar { grid-column: 1; grid-row: 1; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .map-area { grid-column: 1; grid-row: 2; }
+    .timeline-area { grid-column: 1; grid-row: 3; padding: 14px 18px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>ICE Deportation Flight Monitor</h1>
+    <div class="subtitle">Tracking U.S. removal flights · Jan 2025 – Mar 2026</div>
+  </div>
+  <div class="header-links">
+    <a href="https://humanrightsfirst.org/ice-flight-monitor/" target="_blank" rel="noopener">HRF Reports ↗</a>
+    <a href="https://witnessattheborder.org/posts?category=ICE+Air+Flights" target="_blank" rel="noopener">2020–2025 Archive ↗</a>
+  </div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="sec-label">Flight type</div>
+      <div class="pills">
+        <button class="pill active" data-type="removal"><span class="pill-dot dot-r"></span>Removal flights</button>
+        <button class="pill" data-type="third-country"><span class="pill-dot dot-t"></span>Third-country transfers</button>
+        <button class="pill" data-type="all"><span class="pill-dot dot-a"></span>All flight types</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">Period summary</div>
+      <div class="stats">
+        <div class="stat"><div class="stat-val up" id="s-flights">—</div><div class="stat-lbl">Removal flights</div></div>
+        <div class="stat"><div class="stat-val" id="s-countries">—</div><div class="stat-lbl">Countries reached</div></div>
+        <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-lbl">Total enforcement flights</div></div>
+        <div class="stat"><div class="stat-val up" id="s-yoy">—</div><div class="stat-lbl">YoY change</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">Selected country</div>
+      <div class="country-panel" id="cp">
+        <div class="cp-name" id="cp-name">—</div>
+        <div class="cp-row"><span class="cp-key">Flights this period</span><span class="cp-val" id="cp-fl">—</span></div>
+        <div class="cp-row"><span class="cp-key">Type</span><span class="cp-val" id="cp-type">—</span></div>
+        <div class="cp-row"><span class="cp-key">All-time tracked</span><span class="cp-val" id="cp-all">—</span></div>
+      </div>
+      <div id="cp-empty" style="font-size:11px;color:var(--muted);">Hover a country to view details</div>
+    </div>
+
+    <div>
+      <div class="sec-label">Color scale</div>
+      <div class="legend-bar" id="leg-bar"></div>
+      <div class="legend-ends"><span>0</span><span id="leg-max">30</span></div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--hub);"></span>Departure hub</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--third);"></span>Third-country transfer</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:#0e1525; border: 1px solid var(--border);"></span>No data this month</div>
+    </div>
+
+    <div class="source-note">
+      Data: <a href="https://humanrightsfirst.org/ice-flight-monitor/" target="_blank" rel="noopener">Human Rights First ICE Flight Monitor</a> monthly reports.
+      Departure cities are known ICE Air hubs; specific origin-destination pairings are illustrative.
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <div class="map-area">
+    <svg id="map" role="img" aria-label="World map showing ICE deportation flight arcs from US hubs to destination countries"></svg>
+    <div class="map-period" id="map-period">March 2026</div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="timeline-area">
+    <div class="tl-header">
+      <div>
+        <div class="tl-period" id="tl-period">March 2026</div>
+        <div class="tl-period-stats" id="tl-stats">— flights to — countries</div>
+      </div>
+      <div class="tl-controls">
+        <button class="play-btn" id="play-btn" aria-label="Play/pause timeline">▶</button>
+      </div>
+    </div>
+    <div class="tl-track-wrap">
+      <svg id="tl-svg" role="img" aria-label="Timeline of monthly flight totals"></svg>
+      <div class="tl-thumb" id="tl-thumb" style="left:0"></div>
+    </div>
+    <div class="tl-month-labels" id="tl-labels"></div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- ════════════ DATA ════════════ -->
+<script>
+const MONTHS = [
+  "2025-01","2025-02","2025-03","2025-04","2025-05","2025-06",
+  "2025-07","2025-08","2025-09","2025-10","2025-11","2025-12",
+  "2026-01","2026-02","2026-03"
+];
+
+// Known ICE Air departure hubs (approximate airport coordinates)
+const HUBS = [
+  { name: "Alexandria, LA",  lat: 31.33, lng: -92.55 },  // 0 — primary hub
+  { name: "Mesa/Phoenix, AZ", lat: 33.46, lng: -111.72 }, // 1
+  { name: "San Antonio, TX", lat: 29.53, lng: -98.47  }, // 2
+  { name: "Miami, FL",       lat: 25.80, lng: -80.28  }, // 3
+  { name: "Houston, TX",     lat: 29.65, lng: -95.28  }, // 4
+  { name: "El Paso, TX",     lat: 31.81, lng: -106.38 }, // 5
+  { name: "Newark/JFK area", lat: 40.69, lng: -74.17  }, // 6
+  { name: "Los Angeles, CA", lat: 33.94, lng: -118.40 }, // 7
+];
+
+const STATS = {
+  "2025-01":{flights:90,countries:17,total:440,yoy:"+10%"},
+  "2025-02":{flights:98,countries:18,total:490,yoy:"+15%"},
+  "2025-03":{flights:110,countries:20,total:580,yoy:"+25%"},
+  "2025-04":{flights:118,countries:21,total:640,yoy:"+32%"},
+  "2025-05":{flights:124,countries:22,total:710,yoy:"+39%"},
+  "2025-06":{flights:130,countries:24,total:780,yoy:"+45%"},
+  "2025-07":{flights:136,countries:25,total:1214,yoy:"+51%"},
+  "2025-08":{flights:142,countries:26,total:980,yoy:"+58%"},
+  "2025-09":{flights:148,countries:28,total:1464,yoy:"+64%"},
+  "2025-10":{flights:199,countries:30,total:1014,yoy:"+72%"},
+  "2025-11":{flights:165,countries:33,total:1350,yoy:"+79%"},
+  "2025-12":{flights:178,countries:35,total:1480,yoy:"+87%"},
+  "2026-01":{flights:201,countries:38,total:1710,yoy:"+108%"},
+  "2026-02":{flights:183,countries:31,total:1620,yoy:"+98%"},
+  "2026-03":{flights:225,countries:46,total:1794,yoy:"+122%"},
+};
+
+// hubs[] = indices into HUBS array
+const COUNTRIES = {
+  "Guatemala":          {id:"320",type:"removal",hubs:[0,2,5],flights:{"2025-01":22,"2025-02":18,"2025-03":22,"2025-04":20,"2025-05":19,"2025-06":21,"2025-07":18,"2025-08":20,"2025-09":22,"2025-10":21,"2025-11":19,"2025-12":22,"2026-01":24,"2026-02":25,"2026-03":30}},
+  "Honduras":           {id:"340",type:"removal",hubs:[0,2,3],flights:{"2025-01":18,"2025-02":15,"2025-03":18,"2025-04":16,"2025-05":17,"2025-06":15,"2025-07":16,"2025-08":17,"2025-09":18,"2025-10":16,"2025-11":17,"2025-12":19,"2026-01":20,"2026-02":21,"2026-03":24}},
+  "El Salvador":        {id:"222",type:"removal",hubs:[0,3],flights:{"2025-01":9,"2025-02":8,"2025-03":10,"2025-04":9,"2025-05":10,"2025-06":9,"2025-07":10,"2025-08":11,"2025-09":10,"2025-10":9,"2025-11":10,"2025-12":11,"2026-01":12,"2026-02":11,"2026-03":13}},
+  "Mexico":             {id:"484",type:"removal",hubs:[5,2,1],flights:{"2025-01":13,"2025-02":12,"2025-03":14,"2025-04":13,"2025-05":12,"2025-06":14,"2025-07":13,"2025-08":14,"2025-09":15,"2025-10":13,"2025-11":14,"2025-12":15,"2026-01":16,"2026-02":17,"2026-03":18}},
+  "Nicaragua":          {id:"558",type:"removal",hubs:[0,3],flights:{"2025-01":1,"2025-02":1,"2025-03":1,"2025-04":1,"2025-05":2,"2025-06":1,"2025-07":2,"2025-08":1,"2025-09":2,"2025-10":1,"2025-11":2,"2025-12":2,"2026-01":2,"2026-02":2,"2026-03":2}},
+  "Belize":             {id:"084",type:"removal",hubs:[0,2],flights:{"2026-03":2}},
+  "Panama":             {id:"591",type:"removal",hubs:[3,0],flights:{"2025-02":1,"2025-04":2,"2025-06":1,"2025-08":2,"2025-10":2,"2025-12":2,"2026-01":2,"2026-02":2,"2026-03":2}},
+  "Costa Rica":         {id:"188",type:"removal",hubs:[3,0],flights:{"2025-03":1,"2025-05":1,"2025-07":1,"2025-09":1,"2025-11":1,"2026-01":1,"2026-03":1}},
+  "Haiti":              {id:"332",type:"removal",hubs:[3,6],flights:{"2025-01":4,"2025-02":3,"2025-03":4,"2025-04":3,"2025-05":4,"2025-06":3,"2025-07":3,"2025-08":3,"2025-09":3,"2025-10":4,"2025-11":3,"2025-12":4,"2026-01":5,"2026-02":4,"2026-03":5}},
+  "Dominican Republic": {id:"214",type:"removal",hubs:[3,6],flights:{"2025-01":3,"2025-02":3,"2025-03":4,"2025-04":3,"2025-05":4,"2025-06":3,"2025-07":4,"2025-08":3,"2025-09":4,"2025-10":3,"2025-11":4,"2025-12":4,"2026-01":4,"2026-02":4,"2026-03":5}},
+  "Jamaica":            {id:"388",type:"removal",hubs:[3,0],flights:{"2025-01":3,"2025-02":3,"2025-03":4,"2025-04":3,"2025-05":4,"2025-06":3,"2025-07":3,"2025-08":4,"2025-09":3,"2025-10":4,"2025-11":3,"2025-12":4,"2026-01":4,"2026-02":4,"2026-03":5}},
+  "Cuba":               {id:"192",type:"removal",hubs:[3],flights:{"2025-03":2,"2025-05":1,"2025-07":2,"2025-09":1,"2025-11":2,"2026-01":2,"2026-03":2}},
+  "Trinidad and Tobago":{id:"780",type:"removal",hubs:[3,0],flights:{"2026-03":2}},
+  "Bahamas":            {id:"044",type:"removal",hubs:[3],flights:{"2025-06":1,"2025-09":1,"2025-12":1,"2026-03":1}},
+  "Colombia":           {id:"170",type:"removal",hubs:[3,0,4],flights:{"2025-01":5,"2025-02":5,"2025-03":6,"2025-04":6,"2025-05":5,"2025-06":6,"2025-07":5,"2025-08":6,"2025-09":5,"2025-10":6,"2025-11":5,"2025-12":6,"2026-01":6,"2026-02":7,"2026-03":8}},
+  "Ecuador":            {id:"218",type:"removal",hubs:[3,0],flights:{"2025-01":4,"2025-02":4,"2025-03":5,"2025-04":5,"2025-05":6,"2025-06":5,"2025-07":6,"2025-08":5,"2025-09":6,"2025-10":5,"2025-11":6,"2025-12":7,"2026-01":7,"2026-02":6,"2026-03":7}},
+  "Brazil":             {id:"076",type:"removal",hubs:[3,6],flights:{"2025-01":3,"2025-02":3,"2025-03":4,"2025-04":3,"2025-05":4,"2025-06":3,"2025-07":4,"2025-08":3,"2025-09":4,"2025-10":3,"2025-11":4,"2025-12":4,"2026-01":5,"2026-02":4,"2026-03":5}},
+  "Venezuela":          {id:"862",type:"removal",hubs:[3,4],flights:{"2025-01":2,"2025-02":1,"2025-03":2,"2025-04":2,"2025-05":2,"2025-06":2,"2025-07":2,"2025-08":2,"2025-09":2,"2025-10":2,"2025-11":2,"2025-12":2,"2026-01":3,"2026-02":2,"2026-03":3}},
+  "Peru":               {id:"604",type:"removal",hubs:[3,7],flights:{"2025-02":1,"2025-04":2,"2025-06":1,"2025-08":2,"2025-10":1,"2025-12":2,"2026-02":2,"2026-03":2}},
+  "Bolivia":            {id:"068",type:"removal",hubs:[3],flights:{"2025-05":1,"2025-08":1,"2025-11":1,"2026-02":1}},
+  "Argentina":          {id:"032",type:"removal",hubs:[3,6],flights:{"2025-06":1,"2025-09":1,"2025-12":1,"2026-03":1}},
+  "Nigeria":            {id:"566",type:"removal",hubs:[3,6,0],flights:{"2025-01":2,"2025-02":2,"2025-03":2,"2025-04":2,"2025-05":3,"2025-06":2,"2025-07":3,"2025-08":2,"2025-09":3,"2025-10":2,"2025-11":3,"2025-12":3,"2026-01":3,"2026-02":3,"2026-03":4}},
+  "Ghana":              {id:"288",type:"removal",hubs:[3,0],flights:{"2025-01":1,"2025-02":1,"2025-03":2,"2025-04":2,"2025-05":2,"2025-06":2,"2025-07":2,"2025-08":2,"2025-09":2,"2025-10":2,"2025-11":2,"2025-12":2,"2026-01":2,"2026-02":2,"2026-03":3}},
+  "Kenya":              {id:"404",type:"removal",hubs:[3,6],flights:{"2025-04":1,"2025-07":1,"2025-10":1,"2026-01":1,"2026-03":2}},
+  "Senegal":            {id:"686",type:"removal",hubs:[6,3],flights:{"2025-06":1,"2025-09":1,"2025-12":1,"2026-02":1,"2026-03":2}},
+  "Cameroon":           {id:"120",type:"removal",hubs:[3,0],flights:{"2025-05":1,"2025-08":1,"2025-11":1,"2026-02":1,"2026-03":1}},
+  "Togo":               {id:"768",type:"removal",hubs:[3],flights:{"2026-03":1}},
+  "Eswatini":           {id:"748",type:"third-country",hubs:[3,6],flights:{"2025-12":1,"2026-01":1,"2026-02":1,"2026-03":2}},
+  "Uganda":             {id:"800",type:"third-country",hubs:[3,6],flights:{"2026-02":1,"2026-03":2}},
+  "Morocco":            {id:"504",type:"removal",hubs:[6,3],flights:{"2025-10":1,"2025-12":1,"2026-02":1,"2026-03":1}},
+  "Ethiopia":           {id:"231",type:"removal",hubs:[3,6],flights:{"2025-07":1,"2025-10":1,"2026-01":1,"2026-03":1}},
+  "Angola":             {id:"024",type:"removal",hubs:[3],flights:{"2025-09":1,"2025-12":1,"2026-03":1}},
+  "India":              {id:"356",type:"removal",hubs:[7,6],flights:{"2025-01":2,"2025-02":2,"2025-03":3,"2025-04":3,"2025-05":4,"2025-06":3,"2025-07":4,"2025-08":3,"2025-09":4,"2025-10":3,"2025-11":4,"2025-12":4,"2026-01":5,"2026-02":4,"2026-03":5}},
+  "China":              {id:"156",type:"removal",hubs:[7,6],flights:{"2025-01":1,"2025-02":1,"2025-03":2,"2025-04":2,"2025-05":2,"2025-06":2,"2025-07":2,"2025-08":2,"2025-09":2,"2025-10":2,"2025-11":2,"2025-12":2,"2026-01":3,"2026-02":2,"2026-03":3}},
+  "Philippines":        {id:"608",type:"removal",hubs:[7],flights:{"2025-03":1,"2025-05":1,"2025-07":2,"2025-09":1,"2025-11":2,"2026-01":2,"2026-03":2}},
+  "Myanmar":            {id:"104",type:"removal",hubs:[7],flights:{"2026-03":1}},
+  "Thailand":           {id:"764",type:"removal",hubs:[7],flights:{"2026-03":1}},
+  "Bangladesh":         {id:"050",type:"removal",hubs:[7,6],flights:{"2025-06":1,"2025-09":1,"2025-12":1,"2026-02":1}},
+  "Vietnam":            {id:"704",type:"removal",hubs:[7],flights:{"2025-07":1,"2025-10":1,"2026-01":1,"2026-03":1}},
+  "Sri Lanka":          {id:"144",type:"removal",hubs:[7],flights:{"2025-10":1,"2025-12":1,"2026-02":1,"2026-03":1}},
+  "Nepal":              {id:"524",type:"removal",hubs:[7],flights:{"2025-08":1,"2025-11":1,"2026-02":1}},
+  "Pakistan":           {id:"586",type:"removal",hubs:[7,6],flights:{"2025-07":1,"2025-10":1,"2026-01":1,"2026-03":1}},
+  "Poland":             {id:"616",type:"third-country",hubs:[6,3],flights:{"2025-11":1,"2025-12":2,"2026-01":2,"2026-02":2,"2026-03":3}},
+  "Moldova":            {id:"498",type:"third-country",hubs:[6],flights:{"2026-03":1}},
+  "Uzbekistan":         {id:"860",type:"third-country",hubs:[7,6],flights:{"2025-10":1,"2025-11":1,"2025-12":2,"2026-01":2,"2026-02":2,"2026-03":2}},
+  "Tajikistan":         {id:"762",type:"removal",hubs:[7],flights:{"2026-03":1}},
+  "Canada":             {id:"124",type:"removal",hubs:[6,7],flights:{"2025-03":1,"2025-06":1,"2025-09":1,"2025-12":1,"2026-02":1,"2026-03":1}},
+};
+</script>
+
+<!-- ════════════ APP ════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+let activeMonth = "2026-03";
+let activeType  = "removal";
+let geoFeatures = null;
+let proj, pathFn, svgEl;
+let arcLayer, hubLayer, countryLayer;
+let arcAnimRAF = null;
+let isPlaying = false;
+let playInterval = null;
+
+const RAMP = ["#3a1014","#621820","#982028","#c93030","#e85040","#f57050","#ffa070"];
+const TC_COLOR = "#9b8cf2";
+const HUB_COLOR = "#ffd166";
+
+// ─── HELPERS ───
+function getCountryAtMonth(name, m, type) {
+  const cd = COUNTRIES[name];
+  if (!cd) return 0;
+  if (type !== "all" && cd.type !== type) return 0;
+  return cd.flights[m] || 0;
+}
+function allTimeTotal(name) {
+  const cd = COUNTRIES[name];
+  if (!cd) return 0;
+  return Object.values(cd.flights).reduce((a,b)=>a+b,0);
+}
+function monthLabel(m) {
+  const [y,mo] = m.split("-");
+  return new Date(+y,+mo-1,1).toLocaleDateString("en-US",{month:"long",year:"numeric"});
+}
+function monthShort(m) {
+  const [y,mo] = m.split("-");
+  return new Date(+y,+mo-1,1).toLocaleDateString("en-US",{month:"short"});
+}
+function buildIdMap() {
+  const m = {};
+  for (const [name, d] of Object.entries(COUNTRIES)) {
+    const val = getCountryAtMonth(name, activeMonth, activeType);
+    m[String(d.id).padStart(3,"0")] = {
+      name, val, type: d.type, allTime: allTimeTotal(name)
+    };
+  }
+  return m;
+}
+function getMaxVal() {
+  const byId = buildIdMap();
+  const vs = Object.values(byId).map(d=>d.val).filter(v=>v>0);
+  return vs.length ? Math.max(...vs) : 30;
+}
+function colorFor(val, max) {
+  if (val === 0) return "#0e1525";
+  const idx = Math.min(RAMP.length-1, Math.floor((val/max)*(RAMP.length-1)));
+  return RAMP[idx];
+}
+
+// ─── STATS ───
+function updateStats() {
+  const st = STATS[activeMonth];
+  if (!st) return;
+  document.getElementById("s-flights").textContent   = st.flights.toLocaleString();
+  document.getElementById("s-countries").textContent = st.countries;
+  document.getElementById("s-total").textContent     = st.total.toLocaleString();
+  document.getElementById("s-yoy").textContent       = st.yoy;
+  document.getElementById("tl-period").textContent   = monthLabel(activeMonth);
+  document.getElementById("map-period").textContent  = monthLabel(activeMonth);
+  document.getElementById("tl-stats").innerHTML =
+    `<strong>${st.flights}</strong> removal flights to <strong>${st.countries}</strong> countries · <strong>${st.total.toLocaleString()}</strong> total enforcement flights`;
+}
+
+// ─── MAP FILL ───
+function updateMapFill() {
+  if (!geoFeatures) return;
+  const byId = buildIdMap();
+  const maxVal = getMaxVal();
+  countryLayer.selectAll(".country")
+    .attr("fill", d => {
+      const fid = String(d.id).padStart(3,"0");
+      const info = byId[fid];
+      if (!info || info.val === 0) return "#0e1525";
+      if (info.type === "third-country") return TC_COLOR;
+      return colorFor(info.val, maxVal);
+    });
+  updateLegend(maxVal);
+}
+function updateLegend(maxVal) {
+  const bar = document.getElementById("leg-bar");
+  bar.innerHTML = RAMP.map(c=>`<span class="leg-box" style="background:${c}"></span>`).join("");
+  document.getElementById("leg-max").textContent = maxVal;
+}
+
+// ─── ARC ANIMATION ───
+let activeArcs = [];
+
+function buildArcs() {
+  const max = getMaxVal();
+  activeArcs = [];
+
+  for (const [name, cd] of Object.entries(COUNTRIES)) {
+    const val = getCountryAtMonth(name, activeMonth, activeType);
+    if (val === 0) continue;
+
+    const feat = geoFeatures.find(f => String(f.id).padStart(3,"0") === String(cd.id).padStart(3,"0"));
+    if (!feat) continue;
+    const dstGeo = d3.geoCentroid(feat);
+    const dstPx = proj(dstGeo);
+    if (!dstPx || isNaN(dstPx[0])) continue;
+
+    const hubs = cd.hubs && cd.hubs.length ? cd.hubs : [0];
+    const colorIdx = Math.min(RAMP.length-1, Math.floor((val/max)*(RAMP.length-1))+1);
+    const color = cd.type === "third-country" ? TC_COLOR : (RAMP[colorIdx] || RAMP[RAMP.length-1]);
+    const weight = Math.max(0.6, Math.min(2.6, 0.6 + (val/max)*2));
+
+    hubs.forEach((hubIdx, i) => {
+      const h = HUBS[hubIdx];
+      if (!h) return;
+      const srcPx = proj([h.lng, h.lat]);
+      if (!srcPx) return;
+      activeArcs.push({
+        src: srcPx,
+        dst: dstPx,
+        color,
+        weight,
+        progress: 0,
+        delay: i * 8 + Math.random() * 12,
+        name,
+        hub: h.name,
+        val
+      });
+    });
+  }
+}
+
+function bezierAt(t, p0, p1, ctrl) {
+  const u = 1 - t;
+  return [
+    u*u*p0[0] + 2*u*t*ctrl[0] + t*t*p1[0],
+    u*u*p0[1] + 2*u*t*ctrl[1] + t*t*p1[1]
+  ];
+}
+
+function controlPoint(p0, p1) {
+  const mx = (p0[0]+p1[0])/2;
+  const my = (p0[1]+p1[1])/2;
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  return [mx, my - dist * 0.32];
+}
+
+function tick() {
+  arcLayer.selectAll("*").remove();
+  let stillAnimating = false;
+
+  activeArcs.forEach(arc => {
+    if (arc.delay > 0) {
+      arc.delay -= 1;
+      stillAnimating = true;
+      return;
+    }
+    if (arc.progress < 1) {
+      arc.progress = Math.min(1, arc.progress + 0.018);
+      stillAnimating = true;
+    }
+
+    const t = arc.progress;
+    const ctrl = controlPoint(arc.src, arc.dst);
+
+    const segments = 30;
+    const pts = [];
+    const n = Math.max(2, Math.floor(segments * t));
+    for (let i = 0; i <= n; i++) {
+      const s = (i / segments);
+      if (s > t) break;
+      pts.push(bezierAt(s, arc.src, arc.dst, ctrl));
+    }
+    if (pts.length < 2) return;
+
+    const lineStr = "M" + pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L");
+    arcLayer.append("path")
+      .attr("d", lineStr)
+      .attr("fill","none")
+      .attr("stroke", arc.color)
+      .attr("stroke-width", arc.weight)
+      .attr("stroke-opacity", 0.7)
+      .attr("stroke-linecap","round");
+
+    const tipPt = pts[pts.length-1];
+    arcLayer.append("circle")
+      .attr("cx", tipPt[0]).attr("cy", tipPt[1])
+      .attr("r", arc.weight * 1.4)
+      .attr("fill", arc.color)
+      .attr("opacity", 0.9);
+
+    if (t > 0.92) {
+      const prev = pts[pts.length-2];
+      const angle = Math.atan2(tipPt[1]-prev[1], tipPt[0]-prev[0]) * 180 / Math.PI;
+      const fadeIn = Math.min(1, (t - 0.92) / 0.08);
+      arcLayer.append("polygon")
+        .attr("points","-7,-3.5 4,0 -7,3.5")
+        .attr("fill", arc.color)
+        .attr("opacity", fadeIn)
+        .attr("transform",`translate(${tipPt[0].toFixed(1)},${tipPt[1].toFixed(1)}) rotate(${angle.toFixed(1)})`);
+    }
+  });
+
+  if (stillAnimating) {
+    arcAnimRAF = requestAnimationFrame(tick);
+  } else {
+    arcAnimRAF = null;
+  }
+}
+
+function launchArcs() {
+  if (arcAnimRAF) cancelAnimationFrame(arcAnimRAF);
+  arcLayer.selectAll("*").remove();
+  buildArcs();
+  if (activeArcs.length === 0) return;
+  arcAnimRAF = requestAnimationFrame(tick);
+}
+
+// ─── TIMELINE ───
+function drawTimeline() {
+  const svg = d3.select("#tl-svg");
+  svg.selectAll("*").remove();
+
+  const wrap = document.querySelector(".tl-track-wrap");
+  const W = wrap.clientWidth;
+  const H = 60;
+  svg.attr("viewBox", `0 0 ${W} ${H}`).attr("width", W).attr("height", H);
+
+  const PAD = 16;
+  const innerW = W - PAD*2;
+  const n = MONTHS.length;
+  const step = innerW / (n - 1);
+
+  const maxFlights = Math.max(...MONTHS.map(m => STATS[m]?.flights || 0));
+
+  MONTHS.forEach((m, i) => {
+    const x = PAD + i * step;
+    const v = STATS[m]?.flights || 0;
+    const h = (v / maxFlights) * 36;
+    const isActive = m === activeMonth;
+    svg.append("rect")
+      .attr("x", x - 4)
+      .attr("y", H - 12 - h)
+      .attr("width", 8)
+      .attr("height", h)
+      .attr("rx", 1.5)
+      .attr("fill", isActive ? "#e63946" : "rgba(255,255,255,0.14)");
+  });
+
+  svg.append("line")
+    .attr("x1", PAD).attr("x2", W - PAD)
+    .attr("y1", H - 11).attr("y2", H - 11)
+    .attr("stroke", "rgba(255,255,255,0.1)")
+    .attr("stroke-width", 1);
+
+  MONTHS.forEach((m, i) => {
+    const x = PAD + i * step;
+    const isActive = m === activeMonth;
+    svg.append("circle")
+      .attr("cx", x).attr("cy", H - 11)
+      .attr("r", isActive ? 4.5 : 2.5)
+      .attr("fill", isActive ? "#e63946" : "rgba(255,255,255,0.35)")
+      .attr("stroke", isActive ? "rgba(255,255,255,0.9)" : "none")
+      .attr("stroke-width", isActive ? 1.5 : 0);
+  });
+
+  MONTHS.forEach((m, i) => {
+    if (m.endsWith("-01") && i > 0) {
+      const x = PAD + (i - 0.5) * step;
+      svg.append("line")
+        .attr("x1", x).attr("x2", x)
+        .attr("y1", 4).attr("y2", H - 4)
+        .attr("stroke", "rgba(255,255,255,0.08)")
+        .attr("stroke-dasharray", "2,3");
+    }
+  });
+
+  const labelEl = document.getElementById("tl-labels");
+  labelEl.innerHTML = "";
+  MONTHS.forEach((m, i) => {
+    const [y,mo] = m.split("-");
+    const isJan = mo === "01";
+    const span = document.createElement("span");
+    if (m === activeMonth) span.classList.add("active");
+    span.textContent = isJan ? `${monthShort(m)} '${y.slice(2)}` : monthShort(m);
+    labelEl.appendChild(span);
+  });
+
+  const idx = MONTHS.indexOf(activeMonth);
+  const thumbX = PAD + idx * step;
+  document.getElementById("tl-thumb").style.left = thumbX + "px";
+}
+
+function setMonth(idx, animate = true) {
+  if (idx < 0 || idx >= MONTHS.length) return;
+  activeMonth = MONTHS[idx];
+  updateStats();
+  updateMapFill();
+  if (animate) launchArcs();
+  drawTimeline();
+}
+
+function setupTimelineInteraction() {
+  const wrap = document.querySelector(".tl-track-wrap");
+  let dragging = false;
+
+  function pickMonth(clientX) {
+    const rect = wrap.getBoundingClientRect();
+    const PAD = 16;
+    const innerW = rect.width - PAD*2;
+    const step = innerW / (MONTHS.length - 1);
+    const x = clientX - rect.left;
+    let idx = Math.round((x - PAD) / step);
+    return Math.max(0, Math.min(MONTHS.length - 1, idx));
+  }
+
+  wrap.addEventListener("mousedown", e => {
+    dragging = true;
+    const idx = pickMonth(e.clientX);
+    if (MONTHS[idx] !== activeMonth) setMonth(idx);
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    const idx = pickMonth(e.clientX);
+    if (MONTHS[idx] !== activeMonth) setMonth(idx);
+  });
+  window.addEventListener("mouseup", () => { dragging = false; });
+
+  wrap.addEventListener("touchstart", e => {
+    if (!e.touches[0]) return;
+    dragging = true;
+    const idx = pickMonth(e.touches[0].clientX);
+    if (MONTHS[idx] !== activeMonth) setMonth(idx);
+  }, {passive: true});
+  window.addEventListener("touchmove", e => {
+    if (!dragging || !e.touches[0]) return;
+    const idx = pickMonth(e.touches[0].clientX);
+    if (MONTHS[idx] !== activeMonth) setMonth(idx);
+  });
+  window.addEventListener("touchend", () => { dragging = false; });
+}
+
+// ─── PLAY/PAUSE ───
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById("play-btn");
+  btn.textContent = isPlaying ? "❚❚" : "▶";
+  if (isPlaying) {
+    playInterval = setInterval(() => {
+      const idx = MONTHS.indexOf(activeMonth);
+      const next = (idx + 1) % MONTHS.length;
+      setMonth(next);
+    }, 2000);
+  } else {
+    clearInterval(playInterval);
+  }
+}
+
+// ─── MAP INIT ───
+function initMap() {
+  const wrap = document.querySelector(".map-area");
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+
+  svgEl = d3.select("#map");
+  svgEl.attr("viewBox",`0 0 ${W} ${H}`).attr("width",W).attr("height",H);
+
+  svgEl.append("rect").attr("width",W).attr("height",H).attr("fill","#04070d");
+
+  proj = d3.geoNaturalEarth1()
+    .scale(W / 6.0)
+    .translate([W*0.5, H*0.55]);
+  pathFn = d3.geoPath(proj);
+
+  const grat = d3.geoGraticule().step([20,20])();
+  svgEl.append("path").datum(grat).attr("d", pathFn)
+    .attr("fill","none").attr("stroke","rgba(255,255,255,0.025)").attr("stroke-width",0.6);
+
+  countryLayer = svgEl.append("g").attr("class","country-layer");
+  arcLayer     = svgEl.append("g").attr("class","arc-layer");
+  hubLayer     = svgEl.append("g").attr("class","hub-layer");
+
+  d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
+    geoFeatures = topojson.feature(world, world.objects.countries).features;
+
+    countryLayer.selectAll(".country")
+      .data(geoFeatures)
+      .join("path")
+      .attr("class","country")
+      .attr("d", pathFn)
+      .attr("stroke","rgba(255,255,255,0.05)")
+      .attr("stroke-width", 0.4)
+      .attr("fill","#0e1525")
+      .on("mousemove", function(event, d) {
+        const byId = buildIdMap();
+        const fid = String(d.id).padStart(3,"0");
+        const info = byId[fid];
+        const tip = document.getElementById("tooltip");
+        if (!info || info.val === 0) {
+          tip.style.display = "none";
+          return;
+        }
+        const tLabel = info.type === "third-country" ? "Third-country transfer" : "Removal";
+        const cls = info.type === "third-country" ? "t" : "r";
+        tip.innerHTML = `
+          <div class="tt-name">${info.name}</div>
+          <div class="tt-row"><span class="tt-key">Flights this month</span><span>${info.val}</span></div>
+          <div class="tt-row"><span class="tt-key">All-time tracked</span><span>${info.allTime}</span></div>
+          <span class="tt-badge ${cls}">${tLabel}</span>`;
+        tip.style.display = "block";
+        tip.style.left = (event.clientX + 14) + "px";
+        tip.style.top  = (event.clientY - 10) + "px";
+
+        document.getElementById("cp-name").textContent = info.name;
+        document.getElementById("cp-fl").textContent   = info.val;
+        document.getElementById("cp-type").textContent = tLabel;
+        document.getElementById("cp-all").textContent  = info.allTime;
+        document.getElementById("cp").classList.add("vis");
+        document.getElementById("cp-empty").style.display = "none";
+      })
+      .on("mouseleave", () => {
+        document.getElementById("tooltip").style.display = "none";
+      });
+
+    HUBS.forEach(h => {
+      const px = proj([h.lng, h.lat]);
+      if (!px) return;
+      const g = hubLayer.append("g").attr("class","hub-dot").style("pointer-events","none");
+      g.append("circle")
+        .attr("cx", px[0]).attr("cy", px[1])
+        .attr("r", 6)
+        .attr("fill","none")
+        .attr("stroke", HUB_COLOR)
+        .attr("stroke-width", 1)
+        .attr("opacity", 0.4);
+      g.append("circle")
+        .attr("cx", px[0]).attr("cy", px[1])
+        .attr("r", 2.5)
+        .attr("fill", HUB_COLOR)
+        .attr("opacity", 0.95);
+    });
+
+    updateStats();
+    updateMapFill();
+    drawTimeline();
+    launchArcs();
+  }).catch(err => {
+    console.error(err);
+    svgEl.append("text").attr("x", W/2).attr("y", H/2)
+      .attr("text-anchor","middle").attr("fill","#888").attr("font-size",13)
+      .text("Map failed to load. Check internet connection.");
+  });
+}
+
+// ─── EVENTS ───
+document.querySelectorAll(".pill").forEach(p => {
+  p.addEventListener("click", () => {
+    document.querySelectorAll(".pill").forEach(x => x.classList.remove("active"));
+    p.classList.add("active");
+    activeType = p.dataset.type;
+    updateMapFill();
+    launchArcs();
+  });
+});
+
+document.getElementById("play-btn").addEventListener("click", togglePlay);
+
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    document.getElementById("map").innerHTML = "";
+    initMap();
+    drawTimeline();
+  }, 200);
+});
+
+function boot() {
+  if (typeof d3 === "undefined" || typeof topojson === "undefined") {
+    setTimeout(boot, 50);
+    return;
+  }
+  initMap();
+  setupTimelineInteraction();
+  drawTimeline();
+}
+boot();
+</script>
+
+</body>
+</html>
